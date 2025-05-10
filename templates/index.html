@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clothing Segmentation App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .navbar {
+            background-color: #333;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+        .navbar h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        .upload-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .upload-button:hover {
+            background-color: #45a049;
+        }
+        .results-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .result-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .result-item img {
+            max-width: 100%;
+            height: auto;
+        }
+        .cleanup-options {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .cleanup-option {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cleanup-option:hover {
+            background-color: #e8e8e8;
+        }
+        .save-to-wardrobe {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .category-select {
+            padding: 5px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+        .save-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .save-btn:hover {
+            background-color: #45a049;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .eraser-tools {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .eraser-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .eraser-options {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .eraser-canvas-container {
+            position: relative;
+            margin-bottom: 10px;
+            display: none;
+            width: 100%;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            /* Create a checkerboard background to show transparency */
+            background-image: 
+              linear-gradient(45deg, #ccc 25%, transparent 25%), 
+              linear-gradient(-45deg, #ccc 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, #ccc 75%),
+              linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        .eraser-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+        .eraser-btn {
+            background-color: #9370DB;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .eraser-btn:hover {
+            background-color: #8360cb;
+        }
+        .eraser-size-label {
+            font-size: 12px;
+        }
+        .eraser-size {
+            width: 80px;
+        }
+        .eraser-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .eraser-cancel {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .eraser-cancel:hover {
+            background-color: #d32f2f;
+        }
+        .eraser-apply {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .eraser-apply:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>AI Stylist</h1>
+        <div>
+            <a href="/">Home</a>
+            <a href="/outfit-pairing">Outfit Pairing</a>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>Clothing Segmentation App</h1>
+        <p>Upload an image of clothing to segment and crop it</p>
+    </div>
+
+    <div class="upload-section">
+        <form id="upload-form" enctype="multipart/form-data">
+            <label for="file-input">Choose an image of clothing</label><br>
+            <input type="file" id="file-input" name="file" accept=".jpg,.jpeg,.png" class="hidden"><br>
+            <button type="button" class="upload-button" id="select-file-btn">Select File</button>
+            <button type="submit" class="upload-button" id="upload-btn" disabled>Upload & Process</button>
+            <p id="file-name"></p>
+        </form>
+        <div class="spinner" id="spinner"></div>
+        <p class="error-message" id="error-message"></p>
+    </div>
+
+    <div id="original-image-container" style="display: none;">
+        <h2>Original Image</h2>
+        <img id="original-image" src="" alt="Original uploaded image" style="max-width: 100%;">
+    </div>
+
+    <h2 id="results-title" style="display: none;">Segmented Results</h2>
+    <div class="results-section" id="results-container"></div>
+
+    <script>
+        document.getElementById('select-file-btn').addEventListener('click', function() {
+            document.getElementById('file-input').click();
+        });
+
+        document.getElementById('file-input').addEventListener('change', function() {
+            const fileName = this.files[0] ? this.files[0].name : '';
+            document.getElementById('file-name').textContent = fileName;
+            document.getElementById('upload-btn').disabled = !fileName;
+        });
+
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('file-input');
+            
+            if (!fileInput.files.length) {
+                document.getElementById('error-message').textContent = 'Please select a file first.';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            // Show spinner
+            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('error-message').textContent = '';
+            document.getElementById('results-container').innerHTML = '';
+            document.getElementById('results-title').style.display = 'none';
+            document.getElementById('original-image-container').style.display = 'none';
+            
+            fetch('/segment', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide spinner
+                document.getElementById('spinner').style.display = 'none';
+                
+                if (data.error) {
+                    document.getElementById('error-message').textContent = data.error;
+                    return;
+                }
+                
+                // Display original image
+                document.getElementById('original-image').src = '/uploads/' + data.original;
+                document.getElementById('original-image-container').style.display = 'block';
+                
+                // Display results
+                const resultsContainer = document.getElementById('results-container');
+                if (data.results.length > 0) {
+                    document.getElementById('results-title').style.display = 'block';
+                    
+                    data.results.forEach(result => {
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'result-item';
+                        resultItem.dataset.filename = result.filename;
+                        
+                        const img = document.createElement('img');
+                        img.src = '/results/' + result.filename;
+                        img.alt = 'Segmented ' + result.class;
+                        img.className = 'segmented-image';
+                        
+                        const details = document.createElement('div');
+                        details.innerHTML = `
+                            <p><strong>Class:</strong> ${result.class}</p>
+                            <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(2)}%</p>
+                        `;
+                        
+                        // Add cleanup options
+                        const cleanupOptions = document.createElement('div');
+                        cleanupOptions.className = 'cleanup-options';
+                        cleanupOptions.innerHTML = `
+                            <button class="cleanup-option" data-method="remove_background">Remove Background</button>
+                            <button class="cleanup-option" data-method="enhance_contrast">Enhance Contrast</button>
+                            <button class="cleanup-option" data-method="smooth_edges">Smooth Edges</button>
+                            <button class="cleanup-option eraser-btn" data-action="erase">Erase Tool</button>
+                        `;
+                        
+                        // Add eraser tools
+                        const eraserTools = document.createElement('div');
+                        eraserTools.className = 'eraser-tools';
+                        eraserTools.style.display = 'none';
+                        eraserTools.innerHTML = `
+                            <div class="eraser-header">
+                                <h4>Eraser Tool</h4>
+                                <button class="eraser-cancel" title="Close eraser tool">×</button>
+                            </div>
+                            <div class="eraser-options">
+                                <label class="eraser-size-label">Eraser Size:</label>
+                                <input type="range" class="eraser-size" min="1" max="50" value="10">
+                                <span class="eraser-size-value">10</span>
+                            </div>
+                            <div class="eraser-canvas-container">
+                                <!-- Canvas will be added here -->
+                            </div>
+                            <div class="eraser-actions">
+                                <div class="eraser-save-options" style="margin-bottom: 10px;">
+                                    <select class="eraser-category-select">
+                                        <option value="">Save to Wardrobe as...</option>
+                                        <option value="UpperClothes">Upper Clothing</option>
+                                        <option value="Bottoms">Bottom</option>
+                                    </select>
+                                </div>
+                                <button class="eraser-cancel">Cancel</button>
+                                <button class="eraser-apply">Apply Changes</button>
+                            </div>
+                        `;
+                        
+                        // Add save to wardrobe option
+                        const saveToWardrobe = document.createElement('div');
+                        saveToWardrobe.className = 'save-to-wardrobe';
+                        saveToWardrobe.innerHTML = `
+                            <select class="category-select">
+                                <option value="">Save to Wardrobe as...</option>
+                                <option value="UpperClothes">Upper Clothing</option>
+                                <option value="Bottoms">Bottom</option>
+                            </select>
+                            <button class="save-btn">Save</button>
+                        `;
+                        
+                        resultItem.appendChild(img);
+                        resultItem.appendChild(details);
+                        resultItem.appendChild(cleanupOptions);
+                        resultItem.appendChild(eraserTools);
+                        resultItem.appendChild(saveToWardrobe);
+                        resultsContainer.appendChild(resultItem);
+                        
+                        // Add event listeners for cleanup options
+                        cleanupOptions.querySelectorAll('.cleanup-option').forEach(option => {
+                            option.addEventListener('click', function() {
+                                const action = this.getAttribute('data-action');
+                                
+                                if (action === 'erase') {
+                                    // Show eraser tools
+                                    setupEraserTool(resultItem);
+                                } else {
+                                    const method = this.getAttribute('data-method');
+                                    const filename = resultItem.dataset.filename;
+                                    cleanupImage(filename, method, resultItem);
+                                }
+                            });
+                        });
+                        
+                        // Add event listener for save button
+                        saveToWardrobe.querySelector('.save-btn').addEventListener('click', function() {
+                            const category = saveToWardrobe.querySelector('.category-select').value;
+                            if (!category) {
+                                alert('Please select a category');
+                                return;
+                            }
+                            
+                            const filename = resultItem.dataset.filename;
+                            saveToCategory(filename, category, resultItem);
+                        });
+                    });
+                } else {
+                    document.getElementById('error-message').textContent = 'No clothing items detected in the image.';
+                }
+            })
+            .catch(error => {
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('error-message').textContent = 'Error processing the image. Please try again.';
+                console.error('Error:', error);
+            });
+        });
+        
+        // Function to handle image cleanup
+        function cleanupImage(filename, method, resultItem) {
+            // Show loading indicator
+            const img = resultItem.querySelector('.segmented-image');
+            const originalSrc = img.src;
+            img.style.opacity = '0.5';
+            
+            // Send request to clean up the image
+            fetch('/clean-segmentation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_filename: filename,
+                    cleanup_method: method
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the image with the cleaned version
+                    img.src = '/results/' + data.cleaned_filename;
+                    resultItem.dataset.filename = data.cleaned_filename;
+                    
+                    // Restore opacity
+                    img.style.opacity = '1';
+                } else {
+                    alert('Error: ' + data.error);
+                    img.style.opacity = '1';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during image cleanup.');
+                img.style.opacity = '1';
+                img.src = originalSrc;
+            });
+        }
+        
+        // Function to save image to category
+        function saveToCategory(filename, category, resultItem) {
+            // Send request to save the image to the selected category
+            fetch('/erase-image-part', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_filename: filename,
+                    erase_data: [], // Empty array to indicate no additional erasing
+                    category: category
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Item successfully added to your ${category} wardrobe!`);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving to wardrobe.');
+            });
+        }
+        
+        // Setup eraser tool for an image
+        function setupEraserTool(resultItem) {
+            const img = resultItem.querySelector('.segmented-image');
+            const eraserTools = resultItem.querySelector('.eraser-tools');
+            const canvasContainer = eraserTools.querySelector('.eraser-canvas-container');
+            
+            // Show eraser tools
+            eraserTools.style.display = 'flex';
+            
+            // Remove any existing canvas
+            canvasContainer.innerHTML = '';
+            
+            // Wait for the image to load completely
+            if (img.complete) {
+                initializeEraserCanvas();
+            } else {
+                img.onload = initializeEraserCanvas;
+            }
+            
+            // Initialize the canvas for erasing
+            function initializeEraserCanvas() {
+                // Create canvas with same dimensions as the image
+                const canvas = document.createElement('canvas');
+                canvas.className = 'eraser-canvas';
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvasContainer.appendChild(canvas);
+                
+                // Create a preview canvas to show the erasure result
+                const previewCanvas = document.createElement('canvas');
+                previewCanvas.className = 'eraser-canvas';
+                previewCanvas.width = img.width;
+                previewCanvas.height = img.height;
+                previewCanvas.style.position = 'absolute';
+                previewCanvas.style.top = '0';
+                previewCanvas.style.left = '0';
+                previewCanvas.style.zIndex = '0'; // Base layer
+                canvasContainer.appendChild(previewCanvas);
+                
+                // Update canvas to be on top
+                canvas.style.position = 'absolute';
+                canvas.style.top = '0';
+                canvas.style.left = '0';
+                canvas.style.zIndex = '1'; // Top layer
+                canvas.style.backgroundColor = 'transparent';
+                
+                // Draw the original image on the preview canvas
+                const previewCtx = previewCanvas.getContext('2d');
+                
+                // Load the image into the preview canvas
+                const originalImage = new Image();
+                originalImage.crossOrigin = "Anonymous"; // Handle cross-origin issues
+                originalImage.onload = function() {
+                    previewCtx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+                    // Also draw initial image so user can see it right away
+                    updatePreview();
+                };
+                originalImage.onerror = function() {
+                    console.error("Error loading image into eraser tool");
+                    // Fallback to just showing a white background
+                    previewCtx.fillStyle = 'white';
+                    previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+                };
+                originalImage.src = img.src;
+                
+                // Set canvas container to same size as image
+                canvasContainer.style.width = img.width + 'px';
+                canvasContainer.style.height = img.height + 'px';
+                canvasContainer.style.display = 'block';
+                canvasContainer.style.position = 'relative';
+                canvasContainer.style.overflow = 'hidden';
+                
+                // Clear background image since we now use the preview canvas
+                canvasContainer.style.backgroundImage = 'none';
+                
+                const ctx = canvas.getContext('2d');
+                let isDrawing = false;
+                const eraserSizeInput = eraserTools.querySelector('.eraser-size');
+                const eraserSizeValue = eraserTools.querySelector('.eraser-size-value');
+                let eraserSize = parseInt(eraserSizeInput.value);
+                const erasurePoints = [];
+                
+                // Update eraser size display
+                eraserSizeInput.addEventListener('input', function() {
+                    eraserSize = parseInt(this.value);
+                    eraserSizeValue.textContent = eraserSize;
+                });
+                
+                // Function to update preview based on current erasure points
+                function updatePreview() {
+                    // Clear preview and redraw original image
+                    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                    previewCtx.drawImage(originalImage, 0, 0, previewCanvas.width, previewCanvas.height);
+                    
+                    // Apply eraser effect to preview - make erased areas transparent
+                    previewCtx.globalCompositeOperation = 'destination-out';
+                    
+                    // Draw all erasure points as transparent
+                    erasurePoints.forEach(point => {
+                        const px = point.x * previewCanvas.width;
+                        const py = point.y * previewCanvas.height;
+                        const pr = point.radius * Math.max(previewCanvas.width, previewCanvas.height);
+                        
+                        previewCtx.beginPath();
+                        previewCtx.arc(px, py, pr, 0, Math.PI * 2);
+                        previewCtx.fill();
+                    });
+                    
+                    // Reset composite operation
+                    previewCtx.globalCompositeOperation = 'source-over';
+                }
+                
+                // Handle mouse events
+                canvas.addEventListener('mousedown', startDrawing);
+                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mouseup', stopDrawing);
+                canvas.addEventListener('mouseout', stopDrawing);
+                
+                // Handle touch events
+                canvas.addEventListener('touchstart', handleTouchStart);
+                canvas.addEventListener('touchmove', handleTouchMove);
+                canvas.addEventListener('touchend', stopDrawing);
+                
+                function handleTouchStart(e) {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    canvas.dispatchEvent(mouseEvent);
+                }
+                
+                function handleTouchMove(e) {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    canvas.dispatchEvent(mouseEvent);
+                }
+                
+                function startDrawing(e) {
+                    isDrawing = true;
+                    draw(e);
+                }
+                
+                function draw(e) {
+                    if (!isDrawing) return;
+                    
+                    const rect = canvas.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / canvas.width;
+                    const y = (e.clientY - rect.top) / canvas.height;
+                    const radius = eraserSize / Math.max(canvas.width, canvas.height);
+                    
+                    // Clear the canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Just draw the current eraser cursor
+                    ctx.beginPath();
+                    ctx.arc(
+                        e.clientX - rect.left, 
+                        e.clientY - rect.top, 
+                        eraserSize, 0, Math.PI * 2
+                    );
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    
+                    // Draw a small crosshair at the center of the eraser
+                    const crosshairSize = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(e.clientX - rect.left - crosshairSize, e.clientY - rect.top);
+                    ctx.lineTo(e.clientX - rect.left + crosshairSize, e.clientY - rect.top);
+                    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top - crosshairSize);
+                    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top + crosshairSize);
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    
+                    // Save erase point (normalized coordinates)
+                    erasurePoints.push({
+                        x: x,
+                        y: y,
+                        radius: radius
+                    });
+                    
+                    // Update the preview to show transparency where erased
+                    updatePreview();
+                }
+                
+                function stopDrawing() {
+                    isDrawing = false;
+                }
+                
+                // Handle cancel button
+                const cancelBtns = eraserTools.querySelectorAll('.eraser-cancel');
+                cancelBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        eraserTools.style.display = 'none';
+                        canvasContainer.style.display = 'none';
+                    });
+                });
+                
+                // Handle apply button
+                const applyBtn = eraserTools.querySelector('.eraser-apply');
+                applyBtn.addEventListener('click', function() {
+                    if (erasurePoints.length === 0) {
+                        alert('No areas have been erased.');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    applyBtn.textContent = 'Applying...';
+                    applyBtn.disabled = true;
+                    
+                    // Get selected category if any
+                    const categorySelect = eraserTools.querySelector('.eraser-category-select');
+                    const category = categorySelect ? categorySelect.value : '';
+                    
+                    // Send erasure data to server
+                    fetch('/erase-image-part', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            image_filename: resultItem.dataset.filename,
+                            erase_data: erasurePoints,
+                            category: category
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update image with erased version
+                            img.src = '/results/' + data.erased_filename;
+                            resultItem.dataset.filename = data.erased_filename;
+                            
+                            // Show success message if saved to wardrobe
+                            if (data.category) {
+                                alert(`Item successfully added to your ${data.category} wardrobe!`);
+                            }
+                            
+                            // Hide eraser tools
+                            eraserTools.style.display = 'none';
+                            canvasContainer.style.display = 'none';
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                        
+                        // Reset apply button
+                        applyBtn.textContent = 'Apply Changes';
+                        applyBtn.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while applying erasures.');
+                        
+                        // Reset apply button
+                        applyBtn.textContent = 'Apply Changes';
+                        applyBtn.disabled = false;
+                    });
+                });
+            }
+        }
+    </script>
+</body>
+</html> 
